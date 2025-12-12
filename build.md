@@ -7,6 +7,7 @@ D:\virtualBox
 D:\vagrant
 D:\box\focal-server-cloudimg-amd64-vagrant.box
 ```
+[Vagrant Box下载地址](https://mirror.sjtu.edu.cn/ubuntu-cloud-images/focal/current/)
 [Vagrant的安装配置虚拟机超详细教程以及不安装在C盘的配置，配合VirtualBox使用](https://blog.csdn.net/qiujicai/article/details/140008635)
 
 **设置环境变量（以管理员身份运行PowerShell）：**
