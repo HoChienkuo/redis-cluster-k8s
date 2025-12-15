@@ -1,0 +1,61 @@
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisSentinel
+metadata:
+  name: redis-sentinel
+  namespace: redis-system
+spec:
+  persistenceEnabled: false
+  clusterSize: 3
+  podSecurityContext:
+    runAsUser: 0 # 使用root，防止没有权限
+    fsGroup: 0
+  redisSentinelConfig:
+    # 这里的redisReplicationName要跟下面的RedisReplication name对应。
+    redisReplicationName: redis-replication
+    redisReplicationPassword:
+      secretKeyRef:
+        name: redis-secret
+        key: password
+  kubernetesConfig:
+    image: quay.io/opstree/redis-sentinel:v6.2.17
+    imagePullPolicy: IfNotPresent
+    redisSecret:
+      name: redis-secret
+      key: password
+    resources:
+      requests:
+        cpu: 101m
+        memory: 128Mi
+      limits:
+        cpu: 101m
+        memory: 128Mi
+
+---
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisReplication
+metadata:
+  name: redis-replication
+  namespace: redis-system
+spec:
+  persistenceEnabled: false
+  clusterSize: 3
+  kubernetesConfig:
+    image: quay.io/opstree/redis:v6.2.17
+    imagePullPolicy: IfNotPresent
+    redisSecret:
+      name: redis-secret
+      key: password
+  storage:
+    volumeClaimTemplate:
+      spec:
+        # storageClassName: standard
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+  redisExporter:
+    enabled: false
+    image: quay.io/opstree/redis-exporter:v1.44.0
+  podSecurityContext:
+    runAsUser: 0
+    fsGroup: 0
