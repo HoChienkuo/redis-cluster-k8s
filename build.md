@@ -206,13 +206,22 @@ watch -n 2 "kubectl get hpa -n redis-system && echo && kubectl get pods -l app=r
    ```
 4. 安装Prometheus无法连接
     ```shell
-    # 国内源
+    # 方法一国内源
     helm repo add azure-china http://mirror.azure.cn/kubernetes/charts/
     helm repo add prometheus-community https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
     helm repo update
     helm install prometheus prometheus-community/kube-prometheus-stack   
-    # 直接安装
+   
+   
+    # 方法二直接安装（推荐）
     helm install prometheus kube-prometheus-stack-80.4.1.tgz --namespace monitoring --create-namespace
+    # 编辑Deployment
+    kubectl edit deployment prometheus-grafana -n monitoring
+    # 找到image字段修改为
+    # swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/grafana/grafana:12.3.0
+    kubectl edit deployment prometheus-kube-state-metrics -n monitoring
+    # 找到image字段修改为
+    # swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.17.0
     ```
 5. 安装Metrics Server显示RUNNING但是describe报错Readiness probe failed: HTTP probe failed with statuscode: 500
     ```yaml
