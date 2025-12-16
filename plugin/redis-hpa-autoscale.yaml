@@ -1,7 +1,7 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: redis-hpa-simple
+  name: redis-hpa-autoscale
   namespace: redis-system
 spec:
   scaleTargetRef:

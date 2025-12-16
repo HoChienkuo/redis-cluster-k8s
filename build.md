@@ -129,7 +129,7 @@ kubectl create secret generic redis-secret --from-literal=password=uestc@2025 -n
     ```shell
     kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
     ```
-2. 安装Prometheus
+2. 安装Prometheus(可选)
     ```shell
     # 使用Helm安装Prometheus Stack
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -143,19 +143,14 @@ kubectl create secret generic redis-secret --from-literal=password=uestc@2025 -n
 **压测**
 使用redis-benchmark进行压测
 ```shell
-
-# 先获取Redis服务地址
-
-REDIS_SERVICE=$(kubectl get svc -l app=redis -o jsonpath='{.items[0].metadata.name}')
-
 # 创建临时的benchmark pod
 
-kubectl run redis-benchmark --image=redis:alpine --rm -it --restart=Never -- \
-sh -c "apk add --no-cache curl && redis-benchmark -h $REDIS_SERVICE -p 6379 -c 50 -n 100000 -t set,get,lpush,lpop"
+kubectl run redis-benchmark --image=registry.cn-hangzhou.aliyuncs.com/docker_mirror/redis:alpine --rm -it --restart=Never -- \
+sh -c "apk add --no-cache curl && redis-benchmark -h redis-replication -p 6379 -c 50 -n 100000 -t set,get,lpush,lpop"
 
 # 在另一个终端监控
 
-watch -n 2 "kubectl get hpa && echo && kubectl get pods -l app=redis"    
+watch -n 2 "kubectl get hpa -n redis-system && echo && kubectl get pods -l app=redis-replication -n redis-system"
 ```
 
 ## 问题排查
@@ -212,8 +207,22 @@ watch -n 2 "kubectl get hpa && echo && kubectl get pods -l app=redis"
 4. 安装Prometheus无法连接
     ```shell
     # 国内源
+    helm repo add azure-china http://mirror.azure.cn/kubernetes/charts/
     helm repo add prometheus-community https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+    helm repo update
     helm install prometheus prometheus-community/kube-prometheus-stack   
     # 直接安装
-    helm install prometheus kube-prometheus-stack-80.4.1.tgz
+    helm install prometheus kube-prometheus-stack-80.4.1.tgz --namespace monitoring --create-namespace
+    ```
+5. 安装Metrics Server显示RUNNING但是describe报错Readiness probe failed: HTTP probe failed with statuscode: 500
+    ```yaml
+    spec:
+      containers:
+          - args:
+            - --kubelet-insecure-tls # 添加这行
+    ```
+   再重新安装components.yaml
+    ```shell
+    kubectl delete -f components.yaml
+    kubectl apply -f components.yaml
     ```

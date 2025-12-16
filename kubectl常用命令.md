@@ -1,5 +1,16 @@
 # kubectl常用命令
 
+**几个常用命令**
+
+```shell
+# 常看Pod所在节点
+kubectl get pods <pod-name> -n kube-system -o wide
+# 查看Pod用的镜像
+kubectl get pods <pod-name> -n kube-system -o yaml | grep image:
+```
+
+**命令大全**
+
 ```shell
 # 查看所有 Pod
 kubectl get pods --all-namespaces
