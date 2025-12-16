@@ -78,6 +78,14 @@ vagrant version
     chmod +x setup-k8s-node.sh
     sudo ./setup-k8s-node.sh
     ```
+4. 配置国内镜像源
+    ```shell
+    # /etc/containerd/config.toml
+    sandbox_image = "registry.aliyuncs.com/google_containers/pause:3.6"
+   
+    sudo systemctl restart containerd
+    sudo systemctl restart kubelet
+    ```
 
 **安装Helm**
 
@@ -104,13 +112,50 @@ kubectl get pod -n redis-system
 ```
 
 创建secret
+
 ```shell
 kubectl create secret generic redis-secret --from-literal=password=uestc@2025 -n redis-system
 ```
 
 部署redis主从副本(哨兵)集群
+
 ```shell
  kubectl apply -f redis-sentinel.yaml 
+```
+
+**创建监控指标**
+
+1. 安装Metrics Server
+    ```shell
+    kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+    ```
+2. 安装Prometheus
+    ```shell
+    # 使用Helm安装Prometheus Stack
+    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    helm install prometheus prometheus-community/kube-prometheus-stack
+    ```
+3. 创建自动伸缩策略
+    ```shell
+    kubectl apply -f redis-hpa-autoscale.yaml
+    ```
+
+**压测**
+使用redis-benchmark进行压测
+```shell
+
+# 先获取Redis服务地址
+
+REDIS_SERVICE=$(kubectl get svc -l app=redis -o jsonpath='{.items[0].metadata.name}')
+
+# 创建临时的benchmark pod
+
+kubectl run redis-benchmark --image=redis:alpine --rm -it --restart=Never -- \
+sh -c "apk add --no-cache curl && redis-benchmark -h $REDIS_SERVICE -p 6379 -c 50 -n 100000 -t set,get,lpush,lpop"
+
+# 在另一个终端监控
+
+watch -n 2 "kubectl get hpa && echo && kubectl get pods -l app=redis"    
 ```
 
 ## 问题排查
@@ -164,3 +209,11 @@ kubectl create secret generic redis-secret --from-literal=password=uestc@2025 -n
     # 应该是DNS被污染，修改/etc/hosts文件
    199.232.68.133 raw.githubusercontent.com
    ```
+4. 安装Prometheus无法连接
+    ```shell
+    # 国内源
+    helm repo add prometheus-community https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+    helm install prometheus prometheus-community/kube-prometheus-stack   
+    # 直接安装
+    helm install prometheus kube-prometheus-stack-80.4.1.tgz
+    ```
